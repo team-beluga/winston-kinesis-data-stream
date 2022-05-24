@@ -1,0 +1,21 @@
+{
+  "name": "winston-kinesis-data-stream",
+  "version": "1.0.0",
+  "description": "AWS Kinesis data stream transport for winston logger",
+  "main": "index.js",
+  "author": "jjlee <cooco119@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "@aws-sdk/client-kinesis": "^3.54.1",
+    "@aws-sdk/client-sts": "^3.54.1",
+    "winston-transport": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^17.0.35",
+    "@typescript-eslint/eslint-plugin": "^5.26.0",
+    "@typescript-eslint/parser": "^5.26.0",
+    "eslint": "^8.16.0",
+    "typescript": "^4.6.4"
+  }
+}
