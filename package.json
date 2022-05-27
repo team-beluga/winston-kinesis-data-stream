@@ -1,11 +1,26 @@
 {
   "name": "winston-kinesis-data-stream",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "AWS Kinesis data stream transport for winston logger",
-  "main": "index.js",
+  "main": "src/index.js",
   "author": "jjlee <cooco119@gmail.com>",
   "license": "MIT",
   "private": false,
+  "repository": {
+    "type": "git",
+    "directory": "https://github.com/team-beluga/winston-kinesis-data-stream"
+  },
+  "keywords": [
+    "winston",
+    "aws-kinesis",
+    "aws",
+    "kinesis",
+    "Kinesis Data Stream"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+  },
   "dependencies": {
     "@aws-sdk/client-kinesis": "^3.54.1",
     "@aws-sdk/client-sts": "^3.54.1",
