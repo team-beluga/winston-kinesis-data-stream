@@ -25,7 +25,6 @@
   },
   "dependencies": {
     "@aws-sdk/client-kinesis": "^3.54.1",
-    "@aws-sdk/client-sts": "^3.54.1",
     "winston-transport": "^4.5.0"
   },
   "devDependencies": {
