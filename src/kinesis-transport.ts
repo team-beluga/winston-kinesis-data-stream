@@ -1,6 +1,7 @@
 import {
   KinesisClient,
   KinesisClientConfig,
+  PutRecordCommand,
   PutRecordsCommand,
 } from "@aws-sdk/client-kinesis";
 import Transport from "winston-transport";
@@ -11,17 +12,21 @@ export interface KinesisTransportOptions
   kinesisClientConfig?: KinesisClientConfig;
   batchCount?: number;
   batchInterval?: number;
+  defaultPartitionKey?: string;
+  partitionKeySelector?: (data) => string;
 }
 
 export class KinesisTransport extends Transport {
   streamName: string;
+  defaultPartitionKey: string;
   batchCount: number;
   batchInterval: number;
+  partitionKeySelector: (data) => string;
 
-  batchTimeoutID: any;
-  batchCallback: (err: any) => void;
+  batchTimeoutID: ReturnType<typeof setTimeout>;
+  batchCallback: (err: object) => void;
 
-  batchBuffer: any[] = [];
+  batchBuffer: object[] = [];
   kinesis: KinesisClient;
 
   constructor(opts: KinesisTransportOptions) {
@@ -30,27 +35,57 @@ export class KinesisTransport extends Transport {
     this.kinesis = new KinesisClient(opts.kinesisClientConfig ?? {});
     this.batchCount = opts.batchCount || 10;
     this.batchInterval = opts.batchInterval || 5000;
+    this.defaultPartitionKey =
+      opts.defaultPartitionKey ?? "default-partition-key";
+    this.partitionKeySelector = opts.partitionKeySelector;
 
-    this.batchTimeoutID = -1;
+    this.batchTimeoutID = null;
   }
 
   log(info, callback) {
-    this._request(info);
+    if (this.batchCount > 1) {
+      this._batchRequest(info);
+    } else {
+      this._request(info);
+    }
 
     if (callback) {
       setImmediate(callback);
     }
   }
 
-  private _request(data) {
+  private async _request(data) {
+    try {
+      await this.kinesis.send(
+        new PutRecordCommand({
+          Data: this.toBuffer(data),
+          StreamName: this.streamName,
+          PartitionKey: this.getPartitionKey(data),
+        })
+      );
+      this.emit("logged", data);
+    } catch (err) {
+      this.emit("warn", err);
+    }
+  }
+
+  private getPartitionKey(data) {
+    return this.partitionKeySelector
+      ? this.partitionKeySelector(data)
+      : this.defaultPartitionKey;
+  }
+
+  private toBuffer(data) {
+    return new TextEncoder().encode(JSON.stringify(data));
+  }
+
+  private _batchRequest(data) {
     this.batchBuffer.push(data);
     if (this.batchBuffer.length === 1) {
       // First message stored, it's time to start the timeout!
-      const me = this;
-      this.batchTimeoutID = setTimeout(function () {
+      this.batchTimeoutID = setTimeout(() => {
         // timeout is reached, send all messages to endpoint
-        me.batchTimeoutID = -1;
-        me._doBatchRequest();
+        this._doBatchRequest();
       }, this.batchInterval);
     }
     if (this.batchBuffer.length === this.batchCount) {
@@ -60,9 +95,9 @@ export class KinesisTransport extends Transport {
   }
 
   private async _doBatchRequest() {
-    if (this.batchTimeoutID > 0) {
+    if (this.batchTimeoutID !== null) {
       clearTimeout(this.batchTimeoutID);
-      this.batchTimeoutID = -1;
+      this.batchTimeoutID = null;
     }
     const batchBufferCopy = this.batchBuffer.slice();
     this.batchBuffer = [];
@@ -70,7 +105,9 @@ export class KinesisTransport extends Transport {
     try {
       const records = batchBufferCopy.map((e) => ({
         Data: new TextEncoder().encode(JSON.stringify(e)),
-        PartitionKey: `${e.env}_${e.log_type}`,
+        PartitionKey: this.partitionKeySelector
+          ? this.partitionKeySelector(e)
+          : this.defaultPartitionKey,
       }));
       await this.kinesis.send(
         new PutRecordsCommand({
