@@ -18,8 +18,10 @@
     "Kinesis Data Stream"
   ],
   "scripts": {
-    "build": "tsc",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
+    "prepare": "husky install",
+    "build": "tsc --project tsconfig.build.json",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "test": "jest"
   },
   "dependencies": {
     "@aws-sdk/client-kinesis": "^3.54.1",
@@ -27,10 +29,13 @@
     "winston-transport": "^4.5.0"
   },
   "devDependencies": {
+    "@types/jest": "^27.5.1",
     "@types/node": "^17.0.35",
     "@typescript-eslint/eslint-plugin": "^5.26.0",
     "@typescript-eslint/parser": "^5.26.0",
     "eslint": "^8.16.0",
+    "husky": "^8.0.1",
+    "jest": "^28.1.0",
     "typescript": "^4.6.4"
   }
 }
